@@ -46,3 +46,11 @@ bot.onText(/(\d{6})/, async (msg, match) => {
 });
 
 console.log("NammaID Bot is running successfully...");
+
+// Render-ன் Port எர்ரரைச் சரி செய்ய ஒரு சின்ன சர்வர்
+const http = require('http');
+http.createServer((req, res) => {
+  res.write("Bot is Alive!");
+  res.end();
+}).listen(process.env.PORT || 3000);
+
