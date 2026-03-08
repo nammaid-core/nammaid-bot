@@ -19,6 +19,10 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+app.get("/", (req,res)=>{
+ res.send("NammaID Telegram Bot Running");
+});
+
 // send OTP endpoint
 app.post("/sendOtp", async (req, res) => {
 
