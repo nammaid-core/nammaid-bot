@@ -1,47 +1,61 @@
-const TelegramBot = require('node-telegram-bot-api');
-const admin = require('firebase-admin');
+const express = require("express");
+const TelegramBot = require("node-telegram-bot-api");
+const admin = require("firebase-admin");
 
-// 1. ரகசியச் சாவிகளை எடுக்கிறோம்
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const app = express();
+app.use(express.json());
+
+// Render environment variables
 const token = process.env.TELEGRAM_TOKEN;
+const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN);
 
-// 2. Firebase இணைக்கிறோம்
+// Telegram bot
+const bot = new TelegramBot(token);
+
+// Firebase
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+ credential: admin.credential.cert(serviceAccount)
 });
+
 const db = admin.firestore();
 
-// 3. பாட்-ஐ உருவாக்குகிறோம் (இது மிக முக்கியம்!)
-const bot = new TelegramBot(token, {polling: true});
+// send OTP endpoint
+app.post("/sendOtp", async (req, res) => {
 
-// 4. வெரிஃபிகேஷன் லாஜிக்
-bot.onText(/(\d{6})/, async (msg, match) => {
-  const chatId = msg.chat.id;
-  const code = match[1].trim();
+ const { phone, code } = req.body;
 
-  try {
-    const q = await db.collection('sellers').where('resetCode', '==', code).get();
+ try {
 
-    if (!q.empty) {
-      const doc = q.docs[0];
-      await doc.ref.update({
-        telegramId: chatId, 
-        resetVerified: true
-      });
-      bot.sendMessage(chatId, "வெரிஃபிகேஷன் முடிந்தது! ✅ இனி உங்கள் டெலிகிராம் ஐடி இணைக்கப்பட்டுவிட்டது.");
-    } else {
-      bot.sendMessage(chatId, "தவறான கோட்! ⚠️");
-    }
-  } catch (err) {
-    console.error("Error:", err);
+  const snap = await db.collection("sellers").doc(phone).get();
+
+  if (!snap.exists) {
+   return res.status(404).send("User not found");
   }
+
+  const data = snap.data();
+
+  const telegramId = data.telegramId;
+
+  if (!telegramId) {
+   return res.status(400).send("Telegram not linked");
+  }
+
+  await bot.sendMessage(
+   telegramId,
+   `NammaID Reset Code: ${code}`
+  );
+
+  res.send({ success: true });
+
+ } catch (err) {
+
+  console.log(err);
+  res.status(500).send("Error");
+
+ }
+
 });
 
-// Render எர்ரர் வராமல் இருக்க ஒரு சின்ன சர்வர்
-const http = require('http');
-http.createServer((req, res) => {
-  res.write("Bot is Alive!");
-  res.end();
-}).listen(process.env.PORT || 3000);
-
-console.log("NammaID Bot is running successfully...");
+app.listen(3000, () => {
+ console.log("Bot running...");
+});
