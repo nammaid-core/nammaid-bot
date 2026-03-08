@@ -1,0 +1,17 @@
+{
+  "name": "nammaid-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for nammaid.com PIN reset verification",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.61.0",
+    "firebase-admin": "^11.10.1",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
