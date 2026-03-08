@@ -1,43 +1,19 @@
-const TelegramBot = require('node-telegram-bot-api');
-const admin = require('firebase-admin');
+bot.onText(/(\d{6})/, async (msg, match) => {
+  const chatId = msg.chat.id; // யூசரின் டெலிகிராம் ஐடி
+  const code = match[1].trim();
 
-// Render Environment Variables-ல் இருந்து ரகசியச் சாவிகளை எடுக்கிறோம்
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-const token = process.env.TELEGRAM_TOKEN;
-
-// Firebase-ஐ சர்வர் முறையில் இணைக்கிறோம்
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
-
-// பாட்-ஐ உருவாக்குகிறோம்
-const bot = new TelegramBot(token, {polling: true});
-
-bot.onText(/\/start|hi|otp/i, async (msg) => {
-  const chatId = msg.chat.id;
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // Telegram ID-ஐ வைத்து யூசரைத் தேடுகிறோம்
-  const q = await db.collection('sellers').where('telegramId', '==', chatId).get();
+  // டேட்டாபேஸில் இந்த கோட் எங்கே இருக்கிறது என்று தேடுகிறோம்
+  const q = await db.collection('sellers').where('resetCode', '==', code).get();
 
   if (!q.empty) {
-    await q.docs[0].ref.update({
-      resetCode: otp,
-      resetExpires: Date.now() + (5 * 60 * 1000) // 5 நிமிடம்
+    const doc = q.docs[0];
+    // இங்கே தான் மந்திரம் நடக்கிறது: டெலிகிராம் ஐடியை அப்டேட் செய்கிறோம்!
+    await doc.ref.update({
+      telegramId: chatId, 
+      resetVerified: true
     });
-    bot.sendMessage(chatId, `உங்களுடைய OTP: ${otp}. இதை வெப்சைட்டில் உள்ளீடு செய்யவும்.`);
+    bot.sendMessage(chatId, "வெரிஃபிகேஷன் முடிந்தது! ✅ இனி உங்கள் டெலிகிராம் ஐடி இணைக்கப்பட்டுவிட்டது.");
   } else {
-    bot.sendMessage(chatId, "முதலில் உங்கள் அக்கவுண்ட்டை டெலிகிராம் உடன் இணையுங்கள்.");
+    bot.sendMessage(chatId, "தவறான கோட்! ⚠️");
   }
 });
-
-console.log("NammaID Bot is running successfully...");
-
-// Render-ன் Port எர்ரரைச் சரி செய்ய ஒரு சின்ன சர்வர்
-const http = require('http');
-http.createServer((req, res) => {
-  res.write("Bot is Alive!");
-  res.end();
-}).listen(process.env.PORT || 3000);
-
