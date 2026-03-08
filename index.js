@@ -14,34 +14,21 @@ const db = admin.firestore();
 // பாட்-ஐ உருவாக்குகிறோம்
 const bot = new TelegramBot(token, {polling: true});
 
-bot.onText(/(\d{6})/, async (msg, match) => {
+bot.onText(/\/start|hi|otp/i, async (msg) => {
   const chatId = msg.chat.id;
-  const receivedCode = match[1].trim();
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  try {
-    // Firestore-ல் அந்த கோட் இருக்கிறதா என்று தேடுகிறோம்
-    const q = await db.collection('sellers').where('resetCode', '==', receivedCode).get();
+  // Telegram ID-ஐ வைத்து யூசரைத் தேடுகிறோம்
+  const q = await db.collection('sellers').where('telegramId', '==', chatId).get();
 
-    if (!q.empty) {
-      const doc = q.docs[0];
-      const data = doc.data();
-
-      // கோட் இன்னும் காலாவதி ஆகவில்லையென்றால்
-      if (Date.now() < data.resetExpires) {
-        await doc.ref.update({
-          resetVerified: true,
-          telegramId: chatId
-        });
-        bot.sendMessage(chatId, "வெரிஃபிகேஷன் முடிந்தது! ✅ இப்போ வெப்சைட்டுக்குச் சென்று புது PIN செட் பண்ணுங்க.");
-      } else {
-        bot.sendMessage(chatId, "மன்னிக்கவும், இந்த கோட் எக்ஸ்பயர் ஆகிடுச்சு! ❌");
-      }
-    } else {
-      bot.sendMessage(chatId, "தவறான கோட். சரியான கோடை அனுப்பவும்! ⚠️");
-    }
-  } catch (err) {
-    console.error("Error:", err);
-    bot.sendMessage(chatId, "சிறு பிழை ஏற்பட்டுள்ளது. மீண்டும் முயலவும்.");
+  if (!q.empty) {
+    await q.docs[0].ref.update({
+      resetCode: otp,
+      resetExpires: Date.now() + (5 * 60 * 1000) // 5 நிமிடம்
+    });
+    bot.sendMessage(chatId, `உங்களுடைய OTP: ${otp}. இதை வெப்சைட்டில் உள்ளீடு செய்யவும்.`);
+  } else {
+    bot.sendMessage(chatId, "முதலில் உங்கள் அக்கவுண்ட்டை டெலிகிராம் உடன் இணையுங்கள்.");
   }
 });
 
