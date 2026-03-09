@@ -5,16 +5,12 @@ const admin = require("firebase-admin");
 const app = express();
 app.use(express.json());
 
-// Render environment variables
 const token = process.env.TELEGRAM_TOKEN;
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN);
 
-// Telegram bot
-const bot = new TelegramBot(token);
+const bot = new TelegramBot(token, { polling: true });
 
-// Firebase
 admin.initializeApp({
- credential: admin.credential.cert(serviceAccount)
+ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN))
 });
 
 const db = admin.firestore();
@@ -23,43 +19,74 @@ app.get("/", (req,res)=>{
  res.send("NammaID Telegram Bot Running");
 });
 
-// send OTP endpoint
-app.post("/sendOtp", async (req, res) => {
 
- const { phone, code } = req.body;
+// START COMMAND
+bot.onText(/\/start/i, (msg)=>{
 
- try {
+ const opts = {
+  reply_markup:{
+   one_time_keyboard:true,
+   keyboard:[[
+    {
+     text:"Share Contact",
+     request_contact:true
+    }
+   ]]
+  }
+ };
 
-  const snap = await db.collection("sellers").doc(phone).get();
+ bot.sendMessage(
+  msg.chat.id,
+  "Please share your mobile number to verify your NammaID account.",
+  opts
+ );
 
-  if (!snap.exists) {
-   return res.status(404).send("User not found");
+});
+
+
+// CONTACT RECEIVED
+bot.on("contact", async (msg)=>{
+
+ const chatId = msg.chat.id;
+
+ const sharedPhone =
+ "+" + msg.contact.phone_number.replace(/\D/g,"");
+
+ try{
+
+  const sellerRef = db.collection("sellers").doc(sharedPhone);
+
+  const snap = await sellerRef.get();
+
+  if(!snap.exists){
+
+   return bot.sendMessage(
+    chatId,
+    "❌ This number is not registered in NammaID."
+   );
+
   }
 
-  const data = snap.data();
+  await sellerRef.update({
 
-  const telegramId = data.telegramId;
+   telegramId: chatId,
+   resetVerified: true
 
-  if (!telegramId) {
-   return res.status(400).send("Telegram not linked");
-  }
+  });
 
-  await bot.sendMessage(
-   telegramId,
-   `NammaID Reset Code: ${code}`
+  bot.sendMessage(
+   chatId,
+   "✅ Phone verified. Return to the website."
   );
 
-  res.send({ success: true });
-
- } catch (err) {
+ }catch(err){
 
   console.log(err);
-  res.status(500).send("Error");
 
  }
 
 });
 
-app.listen(3000, () => {
+app.listen(3000, ()=>{
  console.log("Bot running...");
 });
