@@ -25,7 +25,7 @@ bot.onText(/\/start/i, (msg) => {
       one_time_keyboard: true,
       resize_keyboard: true,
       keyboard: [[{
-        text: "எனது மொபைல் எண்ணைப் பகிரவும் (Share Contact)",
+        text: "எனது மொபைல் எண்ணெய் உறுதி செய்கிறேன் (Share Contact)",
         request_contact: true
       }]]
     }
