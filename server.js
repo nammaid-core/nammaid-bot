@@ -75,11 +75,13 @@ bot.on("contact", async (msg) => {
       verified: true
     });
 
-    bot.sendMessage(
+    // server.js -ல் இதைக் கண்டறிந்து மாற்றவும்
+bot.sendMessage(
   chatId,
-  "✅ உங்கள் மொபைல் எண் உறுதி செய்யப்பட்டது! இப்போது கீழே உள்ள லிங்க்-ஐ கிளிக் செய்து வெப்சைட்டுக்குத் திரும்புங்கள்:\n\n👉 [உங்கள் வெப்சைட் லிங்க் இங்கே போடுங்கள்]",
-  { parse_mode: "Markdown" }
+  "✅ உங்கள் மொபைல் எண் உறுதி செய்யப்பட்டது! இப்போது கீழே உள்ள லிங்க்-ஐ கிளிக் செய்து வெப்சைட்டுக்குத் திரும்புங்கள்:\n\n👉 https://nammaid.com/login.html", // இங்கே உங்கள் ஒரிஜினல் லிங்க்
+  { parse_mode: "HTML" }
 );
+
   } catch (err) {
     console.error("Firestore Update Error:", err);
     bot.sendMessage(chatId, "⚠️ ஒரு பிழை ஏற்பட்டுள்ளது. மீண்டும் முயற்சிக்கவும்.");
